@@ -22,13 +22,14 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
-    private var loggedIn: Boolean = false
+    private var loggedIn: Boolean = true
     private val REQUEST_LOCATION = 1
     lateinit var locationProvider: FusedLocationProviderClient
     lateinit var locationRequest: LocationRequest
@@ -61,9 +62,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     if (mapReady) {
                         startLocationUpdates()
                         if (yourLatitude != 0.0 && yourLongitude != 0.0) {
-                            // Add a marker for the current location
                             val yourPosition = LatLng(yourLatitude, yourLongitude)
-                            //mMap.addMarker(MarkerOptions().position(yourPosition).title("Your position!"))
 
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(yourPosition, 13.0f))
                         }
@@ -147,14 +146,41 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      * installed Google Play services and returned to the app.
      */
     override fun onMapReady(googleMap: GoogleMap) {
+        Log.d("MapsActivity", "onMapReady called")
         mMap = googleMap
         mapReady = true
+
+        val db = Firebase.firestore
+        val placesCollection = db.collection("places")
+
+        placesCollection.get()
+            .addOnSuccessListener { documents ->
+                Log.d("Firestore", "Successfully retrieved ${documents.size()} documents")
+                for (document in documents) {
+                    val positionLatStr = document.getString("positionLat")
+                    val positionLonStr = document.getString("positionLon")
+
+                    if (positionLatStr != null && positionLonStr != null) {
+                        val positionLat = positionLatStr.toDouble()
+                        val positionLon = positionLonStr.toDouble()
+
+                        val placeLatLng = LatLng(positionLat, positionLon)
+                        val title = document.getString("name") ?: "Default Title"
+                        val snippet = document.getString("otherInfo") ?: "Default Snippet"
+
+                        Log.d("Firestore", "Adding marker for $title at $placeLatLng")
+                        onMapClick(placeLatLng, title, snippet)
+                    }
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("Firestore", "Error getting documents: ${exception.message}", exception)
+            }
+
         if (locationUpdatesStarted) {
             startLocationUpdates()
             if (yourLatitude != 0.0 && yourLongitude != 0.0) {
-                // Add a marker for the current location
                 val yourPosition = LatLng(yourLatitude, yourLongitude)
-                //mMap.addMarker(MarkerOptions().position(yourPosition).title("Your position!"))
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(yourPosition))
             }
         }
@@ -167,15 +193,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
-    private fun onMapClick(latLng: LatLng) {
-        val latitude = latLng.latitude
-        val longitude = latLng.longitude
+    private fun onMapClick(latLng: LatLng, title : String? = null, snippet : String? = null) {
+
+        val defaultTitle = title ?: "Where you clicked!"
+        val defaultSnippet = snippet ?: "By your fingertips!"
 
         var click = mMap.addMarker(
             MarkerOptions()
-                .position(LatLng(latitude, longitude))
-                .title("Where you clicked!")
-                .snippet("By your fingertips!")
+                .position(LatLng(latLng.latitude, latLng.longitude))
+                .title(defaultTitle)
+                .snippet(defaultSnippet)
         )
     }
 }
