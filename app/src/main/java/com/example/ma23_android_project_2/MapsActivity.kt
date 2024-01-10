@@ -3,7 +3,6 @@ package com.example.ma23_android_project_2
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -39,6 +38,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var locationUpdatesStarted = false
     private var mapReady = false
     lateinit var auth : FirebaseAuth
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,15 +161,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     val positionLonStr = document.getString("positionLon")
 
                     if (positionLatStr != null && positionLonStr != null) {
-                        val positionLat = positionLatStr.toDouble()
-                        val positionLon = positionLonStr.toDouble()
+                        if (positionLatStr != "" && positionLonStr != "") {
+                            val positionLat = positionLatStr.toDouble()
+                            val positionLon = positionLonStr.toDouble()
 
-                        val placeLatLng = LatLng(positionLat, positionLon)
-                        val title = document.getString("name") ?: "Default Title"
-                        val snippet = document.getString("otherInfo") ?: "Default Snippet"
+                            val placeLatLng = LatLng(positionLat, positionLon)
+                            val title = document.getString("name") ?: "Default Title"
+                            val snippet = document.getString("otherInfo") ?: "Default Snippet"
 
-                        Log.d("Firestore", "Adding marker for $title at $placeLatLng")
-                        onMapClick(placeLatLng, title, snippet)
+                            Log.d("Firestore", "Adding marker for $title at $placeLatLng")
+                            onMapClick(placeLatLng, title, snippet)
+                        }
                     }
                 }
             }

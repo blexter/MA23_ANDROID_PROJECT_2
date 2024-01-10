@@ -27,6 +27,11 @@ class LoginFragment : Fragment() {
     lateinit var emailView : EditText
     lateinit var passwordView : EditText
 
+    //*************
+    private var LOGOUT : Boolean = false
+    //*************
+
+
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
@@ -41,6 +46,9 @@ class LoginFragment : Fragment() {
 
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
         val root: View = binding.root
+
+        val mainActivity = requireActivity() as? MainActivity
+        mainActivity?.closeDrawer()
 
         auth = Firebase.auth
         emailView = binding.emailEditText
@@ -58,7 +66,14 @@ class LoginFragment : Fragment() {
 
         if(auth.currentUser != null){
             Toast.makeText(requireContext(), "Already logged in, return" , Toast.LENGTH_SHORT).show()
-            returnTo(true)
+            if(LOGOUT) {
+                val mainActivity = requireActivity() as MainActivity
+                mainActivity.loggedInUser = ""
+                mainActivity.auth.signOut()
+                returnTo(false)
+            } else {
+                returnTo(true)
+            }
         }
         return root
     }
@@ -75,6 +90,7 @@ class LoginFragment : Fragment() {
         if(loggedIn) {
             mainActivity.loggedIn = true
             mainActivity.loggedInUser = auth.currentUser?.email ?: "Unknown LOGGED in user"
+            mainActivity.updateLoginMenuItemText("Logga ut")
 
         } else {
             mainActivity.loggedIn = false
@@ -98,8 +114,8 @@ class LoginFragment : Fragment() {
                 }
                 else {
                     Log.d("!!!", "User not signed in ${task.exception}")
-                    Toast.makeText(requireContext(), "Login/register failed, try again" , Toast.LENGTH_SHORT).show()
-                    returnTo(false)
+                    Toast.makeText(requireContext(), "Login failed, try again" , Toast.LENGTH_SHORT).show()
+
                 }
             }
 
@@ -122,8 +138,8 @@ class LoginFragment : Fragment() {
                 }
                 else {
                     Log.d("!!!", "User not created ${task.exception}")
-                    Toast.makeText(requireContext(), "Login/register failed, try again" , Toast.LENGTH_SHORT).show()
-                    returnTo(false)
+                    Toast.makeText(requireContext(), "Register failed, try again" , Toast.LENGTH_SHORT).show()
+
                 }
             }
     }

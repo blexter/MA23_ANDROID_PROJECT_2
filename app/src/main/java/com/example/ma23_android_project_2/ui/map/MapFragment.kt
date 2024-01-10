@@ -60,6 +60,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         Log.d("MapFragment", "onCreateView called")
         mainActivity = requireActivity() as MainActivity
 
+
+
+
         _binding = FragmentMapBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
