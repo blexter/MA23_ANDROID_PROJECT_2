@@ -7,6 +7,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.GravityCompat
@@ -79,6 +80,34 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback{
             ), drawerLayout
         )
 
+        navView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_list -> {
+                    Log.d("MainActivity", "Navigation item 'Lista' clicked")
+                    findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.nav_list)
+                    binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.nav_login -> {
+                    Log.d("MainActivity", "Navigation item 'Login' clicked")
+                    if (loggedIn) {
+                        auth.signOut()
+                        loggedInUser = ""
+                        loggedIn = false
+                        updateLoginMenuItemText("Logga in")
+                        getDataFromDB()
+                        findNavController(R.id.nav_host_fragment_content_main).popBackStack()
+                    } else {
+                        findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.nav_login)
+                    }
+                    binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                // Handle other menu items
+                else -> false
+            }
+        }
+
         val navMap2Item = navView.menu.findItem(R.id.nav_map2)
         navMap2Item.setOnMenuItemClickListener {
             Log.d("MainActivity", "Navigation item 'nav_map2' clicked")
@@ -87,28 +116,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback{
             startActivity(intent)
             true
         }
-
-        val navLoginItem = navView.menu.findItem(R.id.nav_login)
-        navLoginItem.setOnMenuItemClickListener {
-            Log.d("MainActivity", "Navigation item 'navLoginItem' clicked")
-            if (loggedIn) {
-                auth.signOut()
-                loggedInUser = ""
-                loggedIn = false
-                updateLoginMenuItemText("Logga in")
-                getDataFromDB()
-                findNavController(R.id.nav_host_fragment_content_main).popBackStack()
-                binding.drawerLayout.closeDrawer(GravityCompat.START)
-            } else {
-                findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.nav_login)
-                binding.drawerLayout.closeDrawer(GravityCompat.START)
-
-            }
-
-            true
-        }
-
-
 
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
@@ -183,6 +190,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback{
 
     override fun onResume(){
         super.onResume()
+        binding.drawerLayout.visibility = View.VISIBLE
         startLocationUpdates()
     }
 

@@ -27,11 +27,6 @@ class LoginFragment : Fragment() {
     lateinit var emailView : EditText
     lateinit var passwordView : EditText
 
-    //*************
-    private var LOGOUT : Boolean = false
-    //*************
-
-
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
@@ -65,15 +60,12 @@ class LoginFragment : Fragment() {
         }
 
         if(auth.currentUser != null){
-            Toast.makeText(requireContext(), "Already logged in, return" , Toast.LENGTH_SHORT).show()
-            if(LOGOUT) {
-                val mainActivity = requireActivity() as MainActivity
-                mainActivity.loggedInUser = ""
-                mainActivity.auth.signOut()
-                returnTo(false)
-            } else {
-                returnTo(true)
-            }
+            Toast.makeText(requireContext(), "Du är nu utloggad" , Toast.LENGTH_SHORT).show()
+            val mainActivity = requireActivity() as MainActivity
+            mainActivity.loggedInUser = ""
+            mainActivity.auth.signOut()
+            returnTo(false)
+            mainActivity.updateLoginMenuItemText("Logga in")
         }
         return root
     }
