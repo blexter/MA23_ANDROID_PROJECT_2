@@ -16,9 +16,5 @@
             android:id="@+id/nav_login"
             android:icon="@drawable/ic_menu_slideshow"
             android:title="@string/menu_login" />
-        <item
-            android:id="@+id/nav_map2"
-            android:icon="@drawable/ic_menu_camera"
-            android:title="Karta (old)" />
     </group>
 </menu>

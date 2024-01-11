@@ -20,6 +20,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.ma23_android_project_2.databinding.ActivityMainBinding
 import com.example.ma23_android_project_2.ui.list.ListFragment
+import com.example.ma23_android_project_2.ui.map.MapFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback{
 
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.nav_map, R.id.nav_list, R.id.nav_login, R.id.nav_map2
+                R.id.nav_map, R.id.nav_list, R.id.nav_login
             ), drawerLayout
         )
 
@@ -103,18 +104,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback{
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
-                // Handle other menu items
+                R.id.nav_map -> {
+                    Log.d("MainActivity", "Navigation item 'Map' clicked")
+                    findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.nav_map)
+                    binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                // ... other menu items
                 else -> false
             }
-        }
-
-        val navMap2Item = navView.menu.findItem(R.id.nav_map2)
-        navMap2Item.setOnMenuItemClickListener {
-            Log.d("MainActivity", "Navigation item 'nav_map2' clicked")
-
-            val intent = Intent(this, MapsActivity::class.java)
-            startActivity(intent)
-            true
         }
 
         setupActionBarWithNavController(navController, appBarConfiguration)

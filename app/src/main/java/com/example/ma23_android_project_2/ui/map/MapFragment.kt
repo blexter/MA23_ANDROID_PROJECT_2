@@ -1,80 +1,55 @@
 package com.example.ma23_android_project_2.ui.map
 
 import android.content.pm.PackageManager
-import android.location.Geocoder
-import android.location.Location
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
-import com.example.ma23_android_project_2.MainActivity
 import com.example.ma23_android_project_2.R
 import com.example.ma23_android_project_2.databinding.FragmentMapBinding
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.location.*
+import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.auth.FirebaseAuth
-import java.util.Locale
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
-    private var _binding: FragmentMapBinding? = null
-
-    private val binding get() = _binding!!
-    private val REQUEST_LOCATION = 1
-    lateinit var locationProvider: FusedLocationProviderClient
-    lateinit var locationRequest: LocationRequest
-    lateinit var locationCallback: LocationCallback
+    private lateinit var mMap: GoogleMap
+    private lateinit var binding: FragmentMapBinding
+    private lateinit var auth: FirebaseAuth
+    private lateinit var locationProvider: FusedLocationProviderClient
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
     private var yourLatitude: Double = 0.0
     private var yourLongitude: Double = 0.0
     private var locationUpdatesStarted = false
     private var mapReady = false
-    lateinit var auth : FirebaseAuth
-    private var mMap: GoogleMap? = null
-    private var loggedIn: Boolean = true
-    lateinit var mainActivity : MainActivity
-
+    private val REQUEST_LOCATION = 1
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
+        inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val mapViewModel =
-            ViewModelProvider(this).get(MapViewModel::class.java)
+        binding = FragmentMapBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        Log.d("MapFragment", "onCreateView called")
-        mainActivity = requireActivity() as MainActivity
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-
-
-
-        _binding = FragmentMapBinding.inflate(inflater, container, false)
-        val root: View = binding.root
-
-        val textView: TextView = binding.textMap
-        mapViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
-        locationProvider = LocationServices.getFusedLocationProviderClient(mainActivity)
+        auth = Firebase.auth
+        locationProvider = LocationServices.getFusedLocationProviderClient(requireContext())
         locationRequest = LocationRequest.Builder(2000).build()
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
-                Log.d("MapFragment", "onLocationResult called with ${locationResult.locations.size} locations - in MapFragment")
                 for (location in locationResult.locations) {
                     yourLatitude = location.latitude
                     yourLongitude = location.longitude
@@ -82,100 +57,149 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 if (!locationUpdatesStarted) {
                     locationUpdatesStarted = true
                     if (mapReady) {
-                        mainActivity.startLocationUpdates()
+                        startLocationUpdates()
                         if (yourLatitude != 0.0 && yourLongitude != 0.0) {
                             val yourPosition = LatLng(yourLatitude, yourLongitude)
-
-                            mMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(yourPosition, 13.0f))
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(yourPosition, 13.0f))
                         }
                     }
                 }
             }
         }
 
-        checkLocationPermission()
-
-        val mapFragment = childFragmentManager
-            .findFragmentById(R.id.mapView) as? SupportMapFragment
-
-        if(mapFragment == null)
-            return root
-
-
-        mapFragment.getMapAsync { googleMap ->
-            if (googleMap == null) {
-                Log.e("MapFragment", "GoogleMap is null. Map initialization failed.")
-            } else {
-                Log.d("MapFragment", "Map initialized successfully.")
-                googleMap.setOnMapClickListener { latLng ->
-                    if (loggedIn)
-                        onMapClick(latLng)
-                }
-            }
-        }
-
-        return root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    override fun onMapReady(googleMap: GoogleMap) {
-        Log.d("MapFragment", "onMapReady called in MapFragment")
-
-        mMap = googleMap
-        mapReady = true
-        if (locationUpdatesStarted) {
-            mainActivity.startLocationUpdates()
-            if (yourLatitude != 0.0 && yourLongitude != 0.0) {
-                val yourPosition = LatLng(yourLatitude, yourLongitude)
-                mMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(yourPosition, 13.0f))
-            }
-        }
-
-        mMap?.setOnMapClickListener { latLng ->
-            if (loggedIn)
-                onMapClick(latLng)
-        }
-    }
-
-    private fun checkLocationPermission() {
         if (ActivityCompat.checkSelfPermission(
-                mainActivity,
+                requireContext(),
                 android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
+            )
+            != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                mainActivity,
+                requireActivity(),
                 arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
                 REQUEST_LOCATION
             )
         }
+
+        val mapFragment = childFragmentManager
+            .findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment.getMapAsync(this@MapFragment)
     }
 
 
+    override fun onResume(){
+        super.onResume()
+        startLocationUpdates()
+    }
 
-    private fun onMapClick(latLng: LatLng) {
-        Log.d("MapFragment", "onMapClick called in MapFragment")
-        val zoomLevel = mMap?.cameraPosition?.zoom ?: 0.0f
-        val cameraPosition = mMap?.cameraPosition
-        Log.d("MapFragment", "Camera Position: $cameraPosition, Zoom level: $zoomLevel")
+    override fun onPause(){
+        super.onPause()
+        stopLocationUpdates()
+    }
+    fun stopLocationUpdates(){
+        locationProvider.removeLocationUpdates(locationCallback)
+    }
 
-        if (zoomLevel >= 0.0f) {
-            Log.d("MapFragment", "Adding marker at $latLng")
-            mMap?.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .title("Where you clicked!")
-                    .snippet("By your fingertips!")
+    fun startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION
             )
-        } else {
-            Toast.makeText(mainActivity, "Zoom in, too inaccurate", Toast.LENGTH_SHORT).show()
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            locationProvider.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
+        }
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if(requestCode == REQUEST_LOCATION){
+            if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                startLocationUpdates()
+            }
         }
     }
 
 
 
+
+
+
+    /**
+     * Manipulates the map once available.
+     * This callback is triggered when the map is ready to be used.
+     * This is where we can add markers or lines, add listeners or move the camera. In this case,
+     * we just add a marker near Sydney, Australia.
+     * If Google Play services is not installed on the device, the user will be prompted to install
+     * it inside the SupportMapFragment. This method will only be triggered once the user has
+     * installed Google Play services and returned to the app.
+     */
+    override fun onMapReady(googleMap: GoogleMap) {
+        Log.d("MapsActivity", "onMapReady called")
+        mMap = googleMap
+        mapReady = true
+
+        val db = Firebase.firestore
+        val placesCollection = db.collection("places")
+
+        placesCollection.get()
+            .addOnSuccessListener { documents ->
+                Log.d("Firestore", "Successfully retrieved ${documents.size()} documents")
+                for (document in documents) {
+                    val positionLatStr = document.getString("positionLat")
+                    val positionLonStr = document.getString("positionLon")
+
+                    if (positionLatStr != null && positionLonStr != null) {
+                        if (positionLatStr != "" && positionLonStr != "") {
+                            try {
+                                val positionLat = positionLatStr.toDouble()
+
+                                val positionLon = positionLonStr.toDouble()
+
+                                val placeLatLng = LatLng(positionLat, positionLon)
+                                val title = document.getString("name") ?: "Default Title"
+                                val snippet = document.getString("otherInfo") ?: "Default Snippet"
+
+                                Log.d("Firestore", "Adding marker for $title at $placeLatLng")
+                                onMapClick(placeLatLng, title, snippet)
+                            } catch (ex : Exception){
+                                Log.d("Firestore", "Adding marker failed")
+
+                            }
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("Firestore", "Error getting documents: ${exception.message}", exception)
+            }
+
+        if (locationUpdatesStarted) {
+            startLocationUpdates()
+            if (yourLatitude != 0.0 && yourLongitude != 0.0) {
+                val yourPosition = LatLng(yourLatitude, yourLongitude)
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(yourPosition))
+            }
+        }
+
+    }
+
+    private fun onMapClick(latLng: LatLng, title : String? = null, snippet : String? = null) {
+
+        val defaultTitle = title ?: "Where you clicked!"
+        val defaultSnippet = snippet ?: "By your fingertips!"
+
+        var click = mMap.addMarker(
+            MarkerOptions()
+                .position(LatLng(latLng.latitude, latLng.longitude))
+                .title(defaultTitle)
+                .snippet(defaultSnippet)
+        )
+    }
 }
